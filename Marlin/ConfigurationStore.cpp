@@ -56,6 +56,7 @@ void Config_StoreSettings()
   EEPROM_WRITE_VAR(i,max_xy_jerk);
   EEPROM_WRITE_VAR(i,max_z_jerk);
   EEPROM_WRITE_VAR(i,max_e_jerk);
+  EEPROM_WRITE_VAR(i,max_r_jerk);
   EEPROM_WRITE_VAR(i,add_homeing);
   #ifndef ULTIPANEL
   int plaPreheatHotendTemp = PLA_PREHEAT_HOTEND_TEMP, plaPreheatHPBTemp = PLA_PREHEAT_HPB_TEMP, plaPreheatFanSpeed = PLA_PREHEAT_FAN_SPEED;
@@ -97,6 +98,7 @@ void Config_PrintSettings()
     SERIAL_ECHOPAIR(" Y",axis_steps_per_unit[1]);
     SERIAL_ECHOPAIR(" Z",axis_steps_per_unit[2]);
     SERIAL_ECHOPAIR(" E",axis_steps_per_unit[3]);
+    SERIAL_ECHOPAIR(" R",axis_steps_per_unit[4]);
     SERIAL_ECHOLN("");
       
     SERIAL_ECHO_START;
@@ -106,6 +108,7 @@ void Config_PrintSettings()
     SERIAL_ECHOPAIR(" Y",max_feedrate[1] ); 
     SERIAL_ECHOPAIR(" Z", max_feedrate[2] ); 
     SERIAL_ECHOPAIR(" E", max_feedrate[3]);
+    SERIAL_ECHOPAIR(" R", max_feedrate[4]);
     SERIAL_ECHOLN("");
 
     SERIAL_ECHO_START;
@@ -115,6 +118,7 @@ void Config_PrintSettings()
     SERIAL_ECHOPAIR(" Y" , max_acceleration_units_per_sq_second[1] ); 
     SERIAL_ECHOPAIR(" Z" ,max_acceleration_units_per_sq_second[2] );
     SERIAL_ECHOPAIR(" E" ,max_acceleration_units_per_sq_second[3]);
+    SERIAL_ECHOPAIR(" R" ,max_acceleration_units_per_sq_second[4]);
     SERIAL_ECHOLN("");
     SERIAL_ECHO_START;
     SERIAL_ECHOLNPGM("Acceleration: S=acceleration, T=retract acceleration");
@@ -132,6 +136,7 @@ void Config_PrintSettings()
     SERIAL_ECHOPAIR(" X" ,max_xy_jerk ); 
     SERIAL_ECHOPAIR(" Z" ,max_z_jerk);
     SERIAL_ECHOPAIR(" E" ,max_e_jerk);
+    SERIAL_ECHOPAIR(" R" ,max_r_jerk);
     SERIAL_ECHOLN(""); 
 
     SERIAL_ECHO_START;
@@ -180,6 +185,7 @@ void Config_RetrieveSettings()
         EEPROM_READ_VAR(i,max_xy_jerk);
         EEPROM_READ_VAR(i,max_z_jerk);
         EEPROM_READ_VAR(i,max_e_jerk);
+        EEPROM_READ_VAR(i,max_r_jerk);
         EEPROM_READ_VAR(i,add_homeing);
         #ifndef ULTIPANEL
         int plaPreheatHotendTemp, plaPreheatHPBTemp, plaPreheatFanSpeed;
@@ -217,7 +223,7 @@ void Config_ResetDefault()
     float tmp1[]=DEFAULT_AXIS_STEPS_PER_UNIT;
     float tmp2[]=DEFAULT_MAX_FEEDRATE;
     long tmp3[]=DEFAULT_MAX_ACCELERATION;
-    for (short i=0;i<4;i++) 
+    for (short i=0; i<NUM_AXIS; i++)
     {
         axis_steps_per_unit[i]=tmp1[i];  
         max_feedrate[i]=tmp2[i];  
@@ -235,6 +241,7 @@ void Config_ResetDefault()
     max_xy_jerk=DEFAULT_XYJERK;
     max_z_jerk=DEFAULT_ZJERK;
     max_e_jerk=DEFAULT_EJERK;
+    max_r_jerk=DEFAULT_RJERK;
     add_homeing[0] = add_homeing[1] = add_homeing[2] = 0;
 #ifdef ULTIPANEL
     plaPreheatHotendTemp = PLA_PREHEAT_HOTEND_TEMP;

@@ -665,6 +665,10 @@
 #endif
 #endif
 
+#define R_STEP_PIN         16
+#define R_DIR_PIN          17
+#define R_ENABLE_PIN       -1
+
 #define X_STEP_PIN         15
 #define X_DIR_PIN          21
 #define X_STOP_PIN         18

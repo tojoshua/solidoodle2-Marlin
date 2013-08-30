@@ -28,27 +28,29 @@
 
 //===========================================================================
 
-Hysteresis hysteresis( 0.0f, 0.0f, 0.0f, 0.0f );
-float axis_shift[ NUM_AXIS ] = { 0.0f, 0.0f, 0.0f, 0.0f };
+Hysteresis hysteresis( 0.0f, 0.0f, 0.0f, 0.0f, 0.0f );
+float axis_shift[ NUM_AXIS ] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
 //===========================================================================
-Hysteresis::Hysteresis( float x_mm, float y_mm, float z_mm, float e_mm )
+Hysteresis::Hysteresis(float x_mm, float y_mm, float z_mm, float e_mm , float r_mm)
 {
   m_prev_direction_bits = 0;
-  Set( x_mm, y_mm, z_mm, e_mm );
+  Set( x_mm, y_mm, z_mm, e_mm, r_mm );
 }
 
 //===========================================================================
-void Hysteresis::Set( float x_mm, float y_mm, float z_mm, float e_mm )
+void Hysteresis::Set( float x_mm, float y_mm, float z_mm, float e_mm, float r_mm )
 {
   m_hysteresis_mm[X_AXIS] = x_mm;
   m_hysteresis_mm[Y_AXIS] = y_mm;
   m_hysteresis_mm[Z_AXIS] = z_mm;
   m_hysteresis_mm[E_AXIS] = e_mm;
+  m_hysteresis_mm[R_AXIS] = r_mm;
   m_hysteresis_bits = ((m_hysteresis_mm[X_AXIS]!=0.0f)?(1<<X_AXIS):0)
                     | ((m_hysteresis_mm[Y_AXIS]!=0.0f)?(1<<Y_AXIS):0)
                     | ((m_hysteresis_mm[Z_AXIS]!=0.0f)?(1<<Z_AXIS):0)
-                    | ((m_hysteresis_mm[E_AXIS]!=0.0f)?(1<<E_AXIS):0);
+                    | ((m_hysteresis_mm[E_AXIS]!=0.0f)?(1<<E_AXIS):0)
+                    | ((m_hysteresis_mm[R_AXIS]!=0.0f)?(1<<R_AXIS):0);
   calcSteps();
 }
 
@@ -88,6 +90,8 @@ void Hysteresis::ReportToSerial()
   SERIAL_PROTOCOL(m_hysteresis_mm[Z_AXIS]);
   SERIAL_PROTOCOLPGM(" E");      
   SERIAL_PROTOCOL(m_hysteresis_mm[E_AXIS]);
+  SERIAL_PROTOCOLPGM(" R");
+  SERIAL_PROTOCOL(m_hysteresis_mm[R_AXIS]);
   SERIAL_PROTOCOLPGM(" SHIFTS:x=");      
   SERIAL_PROTOCOL(axis_shift[X_AXIS]);
   SERIAL_PROTOCOLPGM(" y=");      
@@ -96,6 +100,8 @@ void Hysteresis::ReportToSerial()
   SERIAL_PROTOCOL(axis_shift[Z_AXIS]);
   SERIAL_PROTOCOLPGM(" e=");      
   SERIAL_PROTOCOL(axis_shift[E_AXIS]);
+  SERIAL_PROTOCOLPGM(" r=");
+  SERIAL_PROTOCOL(axis_shift[R_AXIS]);
   
   SERIAL_PROTOCOLLN("");
 }
@@ -117,6 +123,9 @@ unsigned char calc_direction_bits( const long* current_position, const long* des
   if (destination[E_AXIS] < current_position[E_AXIS]) { 
     direction_bits |= (1<<E_AXIS); 
   }
+  if (destination[R_AXIS] < current_position[R_AXIS]) {
+    direction_bits |= (1<<R_AXIS);
+  }
   return direction_bits;
 }
 
@@ -135,13 +144,16 @@ unsigned char calc_move_bits( const long* current_position, const long* destinat
   if (destination[E_AXIS] != current_position[E_AXIS]) { 
     move_bits |= (1<<E_AXIS); 
   }
+  if (destination[R_AXIS] != current_position[R_AXIS]) {
+    move_bits |= (1<<R_AXIS);
+  }
   return move_bits;
 }
 //===========================================================================
 // insert a plan_buffer_line if required to handle any hysteresis
-void Hysteresis::InsertCorrection(const float &x, const float &y, const float &z, const float &e)
+void Hysteresis::InsertCorrection(const float &x, const float &y, const float &z, const float &e, const float &r)
 {
-  long destination[NUM_AXIS] = {x*axis_steps_per_unit[X_AXIS],y*axis_steps_per_unit[Y_AXIS],z*axis_steps_per_unit[Z_AXIS],e*axis_steps_per_unit[E_AXIS]};
+  long destination[NUM_AXIS] = {x*axis_steps_per_unit[X_AXIS],y*axis_steps_per_unit[Y_AXIS],z*axis_steps_per_unit[Z_AXIS],e*axis_steps_per_unit[E_AXIS], r*axis_steps_per_unit[R_AXIS]};
   unsigned char direction_bits = calc_direction_bits( position, destination );
   unsigned char move_bits = calc_move_bits(position, destination);
   // if the direction has changed in any of the axis that need hysteresis corrections...

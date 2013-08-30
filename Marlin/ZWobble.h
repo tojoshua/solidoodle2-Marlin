@@ -150,7 +150,7 @@ private:
 //===========================================================================
 
 extern ZWobble zwobble;
-extern long position[4]; // defined in planner.cpp
+extern long position[NUM_AXIS]; // defined in planner.cpp
 
 #endif
 

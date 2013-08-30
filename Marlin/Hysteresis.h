@@ -31,6 +31,7 @@
       if(code_seen('Y')) hysteresis.SetAxis( Y_AXIS, code_value() );    \
       if(code_seen('Z')) hysteresis.SetAxis( Z_AXIS, code_value() );    \
       if(code_seen('E')) hysteresis.SetAxis( E_AXIS, code_value() );    \
+      if(code_seen('R')) hysteresis.SetAxis( R_AXIS, code_value() );    \
     }                                                                   \
     break;
 
@@ -39,12 +40,12 @@
 class Hysteresis
 {
 public:
-  Hysteresis( float x_mm, float y_mm, float z_mm, float e_mm );
+  Hysteresis( float x_mm, float y_mm, float z_mm, float e_mm, float r_mm );
   
-  void Set( float x_mm, float y_mm, float z_mm, float e_mm );
+  void Set(float x_mm, float y_mm, float z_mm, float e_mm , float r_mm);
   void SetAxis( int axis, float mm );
   void ReportToSerial();
-  void InsertCorrection(const float &x, const float &y, const float &z, const float &e);
+  void InsertCorrection(const float &x, const float &y, const float &z, const float &e, const float &r);
 
 private:
   void          calcSteps();
@@ -57,4 +58,4 @@ private:
 //===========================================================================
 
 extern Hysteresis hysteresis;
-extern long position[4]; // defined in planner.cpp
+extern long position[NUM_AXIS]; // defined in planner.cpp

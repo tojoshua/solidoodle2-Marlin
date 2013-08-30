@@ -50,7 +50,9 @@ static unsigned char out_bits;        // The next stepping-bits to be output
 static long counter_x,       // Counter variables for the bresenham line tracer
             counter_y, 
             counter_z,       
-            counter_e;
+            counter_e,
+            counter_r;
+
 volatile static unsigned long step_events_completed; // The number of step events executed in the current block
 #ifdef ADVANCE
   static long advance_rate, advance, final_advance = 0;
@@ -82,8 +84,8 @@ static bool old_z_max_endstop=false;
 
 static bool check_endstops = true;
 
-volatile long count_position[NUM_AXIS] = { 0, 0, 0, 0};
-volatile signed char count_direction[NUM_AXIS] = { 1, 1, 1, 1};
+volatile long count_position[NUM_AXIS] = { 0, 0, 0, 0, 0};
+volatile signed char count_direction[NUM_AXIS] = { 1, 1, 1, 1, 1};
 
 //===========================================================================
 //=============================functions         ============================
@@ -289,6 +291,9 @@ FORCE_INLINE void trapezoid_generator_reset() {
   deceleration_time = 0;
   // step_rate to timer interval
   OCR1A_nominal = calc_timer(current_block->nominal_rate);
+
+  //MYSERIAL.print("calculating timers"); MYSERIAL.println(OCR1A_nominal);
+
   // make a note of the number of step loops required at nominal speed
   step_loops_nominal = step_loops;
   acc_step_rate = current_block->initial_rate;
@@ -321,7 +326,11 @@ ISR(TIMER1_COMPA_vect)
       counter_x = -(current_block->step_event_count >> 1);
       counter_y = counter_x;
       counter_z = counter_x;
+      counter_r = counter_x;
       counter_e = counter_x;
+
+      //SERIAL_ECHOPAIR("\ncounter x: ", (float)counter_x);
+
       step_events_completed = 0; 
       
       #ifdef Z_LATE_ENABLE 
@@ -485,6 +494,15 @@ ISR(TIMER1_COMPA_vect)
       }
     }
 
+    if ((out_bits & (1<<R_AXIS)) != 0) {   // -direction
+      WRITE(R_DIR_PIN,INVERT_R_DIR);
+      count_direction[R_AXIS]=-1;
+    }
+    else { // +direction
+      WRITE(R_DIR_PIN,!INVERT_R_DIR);
+      count_direction[Z_AXIS]=1;
+    }
+
     #ifndef ADVANCE
       if ((out_bits & (1<<E_AXIS)) != 0) {  // -direction
         REV_E_DIR();
@@ -598,6 +616,15 @@ ISR(TIMER1_COMPA_vect)
           WRITE(Z2_STEP_PIN, INVERT_Z_STEP_PIN);
         #endif
       }
+
+      counter_r += current_block->steps_r;
+      if (counter_r > 0) {
+        WRITE(R_STEP_PIN, !INVERT_R_STEP_PIN);
+        counter_r -= current_block->step_event_count;
+        count_position[R_AXIS]+=count_direction[R_AXIS];
+        WRITE(R_STEP_PIN, INVERT_R_STEP_PIN);
+      }
+
 
       #ifndef ADVANCE
         counter_e += current_block->steps_e;
@@ -749,9 +776,12 @@ void st_init()
   #if Y_DIR_PIN > -1 
     SET_OUTPUT(Y_DIR_PIN);
   #endif
+  #if R_DIR_PIN > -1
+    SET_OUTPUT(R_DIR_PIN);
+  #endif
+
   #if Z_DIR_PIN > -1 
     SET_OUTPUT(Z_DIR_PIN);
-
     #if defined(Z_DUAL_STEPPER_DRIVERS) && (Z2_DIR_PIN > -1)
       SET_OUTPUT(Z2_DIR_PIN);
     #endif
@@ -785,6 +815,7 @@ void st_init()
       if(!Z_ENABLE_ON) WRITE(Z2_ENABLE_PIN,HIGH);
     #endif
   #endif
+
   #if (E0_ENABLE_PIN > -1)
     SET_OUTPUT(E0_ENABLE_PIN);
     if(!E_ENABLE_ON) WRITE(E0_ENABLE_PIN,HIGH);
@@ -863,6 +894,11 @@ void st_init()
     #endif
     disable_z();
   #endif  
+  #if (R_STEP_PIN > -1)
+    SET_OUTPUT(R_STEP_PIN);
+    WRITE(R_STEP_PIN,INVERT_R_STEP_PIN);
+    disable_r();
+  #endif
   #if (E0_STEP_PIN > -1) 
     SET_OUTPUT(E0_STEP_PIN);
     WRITE(E0_STEP_PIN,INVERT_E_STEP_PIN);
@@ -930,13 +966,14 @@ void st_synchronize()
   }
 }
 
-void st_set_position(const long &x, const long &y, const long &z, const long &e)
+void st_set_position(const long &x, const long &y, const long &z, const long &e, const long &r)
 {
   CRITICAL_SECTION_START;
   count_position[X_AXIS] = x;
   count_position[Y_AXIS] = y;
   count_position[Z_AXIS] = z;
   count_position[E_AXIS] = e;
+  count_position[R_AXIS] = r;
   CRITICAL_SECTION_END;
 }
 
@@ -962,6 +999,7 @@ void finishAndDisableSteppers()
   disable_x(); 
   disable_y(); 
   disable_z(); 
+  disable_r();
   disable_e0(); 
   disable_e1(); 
   disable_e2(); 

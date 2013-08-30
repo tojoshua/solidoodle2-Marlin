@@ -252,17 +252,20 @@ const bool Z_ENDSTOPS_INVERTING = false; //{SD Patch} // set to true to invert t
 #define X_ENABLE_ON 0
 #define Y_ENABLE_ON 0
 #define Z_ENABLE_ON 0
+#define R_ENABLE_ON 0
 #define E_ENABLE_ON 0 // For all extruders
 
 // Disables axis when it's not being used.
 #define DISABLE_X false
 #define DISABLE_Y false
 #define DISABLE_Z false
+#define DISABLE_R false
 #define DISABLE_E false // For all extruders
 
 #define INVERT_X_DIR false    //{SD Patch} // for Mendel set to false, for Orca set to true
 #define INVERT_Y_DIR false    // for Mendel set to true, for Orca set to false
 #define INVERT_Z_DIR false    //{SD Patch} // for Mendel set to false, for Orca set to true
+#define INVERT_R_DIR false    //{SD Patch} // for Mendel set to false, for Orca set to true
 #define INVERT_E0_DIR false   // for direct drive extruder v9 set to true, for geared extruder set to false
 #define INVERT_E1_DIR false   // for direct drive extruder v9 set to true, for geared extruder set to false
 #define INVERT_E2_DIR false   // for direct drive extruder v9 set to true, for geared extruder set to false
@@ -318,14 +321,14 @@ const bool Z_ENDSTOPS_INVERTING = false; //{SD Patch} // set to true to invert t
 //{SD Patch} END
 
 //// MOVEMENT SETTINGS
-#define NUM_AXIS 4 // The axis order in all axis related arrays is X, Y, Z, E
-#define HOMING_FEEDRATE {50*60, 50*60, 4*60, 0}  // set the homing speeds (mm/min)
+#define NUM_AXIS 5 // The axis order in all axis related arrays is X, Y, Z, E, R
+#define HOMING_FEEDRATE {50*60, 50*60, 4*60, 0, 50*60}  // set the homing speeds (mm/min)
 
 // default settings 
 
-#define DEFAULT_AXIS_STEPS_PER_UNIT   {88,88,2268,115}  //{SD Patch} // default steps per unit for ultimaker
-#define DEFAULT_MAX_FEEDRATE          {500, 500, 5, 45}    //{SD Patch} // (mm/sec)
-#define DEFAULT_MAX_ACCELERATION      {9000,9000,100,10000}    // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for skeinforge 40+, for older versions raise them a lot.
+#define DEFAULT_AXIS_STEPS_PER_UNIT   {88,88,2268,115,31}  //{SD Patch} // default steps per unit for ultimaker
+#define DEFAULT_MAX_FEEDRATE          {500, 500, 5, 45, 500}    //{SD Patch} // (mm/sec)
+#define DEFAULT_MAX_ACCELERATION      {9000,9000,100,10000,9000}    // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for skeinforge 40+, for older versions raise them a lot.
 
 #define DEFAULT_ACCELERATION          3000    // X, Y, Z and E max acceleration in mm/s^2 for printing moves 
 #define DEFAULT_RETRACT_ACCELERATION  3000   // X, Y, Z and E max acceleration in mm/s^2 for r retracts
@@ -338,6 +341,7 @@ const bool Z_ENDSTOPS_INVERTING = false; //{SD Patch} // set to true to invert t
 
 // The speed change that does not require acceleration (i.e. the software might assume it can be done instanteneously)
 #define DEFAULT_XYJERK                20.0    // (mm/sec)
+#define DEFAULT_RJERK                 5.0    // (mm/sec)
 #define DEFAULT_ZJERK                 0.4     // (mm/sec)
 #define DEFAULT_EJERK                 5.0    // (mm/sec)
 

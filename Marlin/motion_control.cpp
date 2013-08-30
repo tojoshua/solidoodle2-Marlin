@@ -88,7 +88,7 @@ void mc_arc(float *position, float *target, float *offset, uint8_t axis_0, uint8
   float cos_T = 1-0.5*theta_per_segment*theta_per_segment; // Small angle approximation
   float sin_T = theta_per_segment;
   
-  float arc_target[4];
+  float arc_target[NUM_AXIS];
   float sin_Ti;
   float cos_Ti;
   float r_axisi;
@@ -100,6 +100,7 @@ void mc_arc(float *position, float *target, float *offset, uint8_t axis_0, uint8
   
   // Initialize the extruder axis
   arc_target[E_AXIS] = position[E_AXIS];
+  arc_target[R_AXIS] = position[R_AXIS];
 
   for (i = 1; i<segments; i++) { // Increment (segments-1)
     
@@ -126,11 +127,11 @@ void mc_arc(float *position, float *target, float *offset, uint8_t axis_0, uint8
     arc_target[E_AXIS] += extruder_per_segment;
 
     clamp_to_software_endstops(arc_target);
-    plan_buffer_line(arc_target[X_AXIS], arc_target[Y_AXIS], arc_target[Z_AXIS], arc_target[E_AXIS], feed_rate, extruder);
+    plan_buffer_line(arc_target[X_AXIS], arc_target[Y_AXIS], arc_target[Z_AXIS], arc_target[E_AXIS], arc_target[R_AXIS], feed_rate, extruder);
     
   }
   // Ensure last segment arrives at target location.
-  plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], feed_rate, extruder);
+  plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], arc_target[R_AXIS], feed_rate, extruder);
 
   //   plan_set_acceleration_manager_enabled(acceleration_manager_was_enabled);
 }
