@@ -1,0 +1,867 @@
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/.gitignore solidoodle2-Marlin-master/.gitignore
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/.gitignore	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/.gitignore	2013-08-30 08:29:51.000000000 -0400
+@@ -3,3 +3,5 @@
+ *~
+ *.orig
+ *.rej
++*.user
++*-build
+\ No newline at end of file
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/Configuration_adv.h solidoodle2-Marlin-master/Marlin/Configuration_adv.h
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/Configuration_adv.h	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/Marlin/Configuration_adv.h	2013-08-30 08:29:51.000000000 -0400
+@@ -157,6 +157,7 @@
+ #define INVERT_Y_STEP_PIN false
+ #define INVERT_Z_STEP_PIN false
+ #define INVERT_E_STEP_PIN false
++#define INVERT_R_STEP_PIN false
+ 
+ //default stepper release if idle
+ #define DEFAULT_STEPPER_DEACTIVE_TIME 60
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/Configuration.h solidoodle2-Marlin-master/Marlin/Configuration.h
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/Configuration.h	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/Marlin/Configuration.h	2013-08-30 08:29:51.000000000 -0400
+@@ -252,17 +252,20 @@
+ #define X_ENABLE_ON 0
+ #define Y_ENABLE_ON 0
+ #define Z_ENABLE_ON 0
++#define R_ENABLE_ON 0
+ #define E_ENABLE_ON 0 // For all extruders
+ 
+ // Disables axis when it's not being used.
+ #define DISABLE_X false
+ #define DISABLE_Y false
+ #define DISABLE_Z false
++#define DISABLE_R false
+ #define DISABLE_E false // For all extruders
+ 
+ #define INVERT_X_DIR false    //{SD Patch} // for Mendel set to false, for Orca set to true
+ #define INVERT_Y_DIR false    // for Mendel set to true, for Orca set to false
+ #define INVERT_Z_DIR false    //{SD Patch} // for Mendel set to false, for Orca set to true
++#define INVERT_R_DIR false    //{SD Patch} // for Mendel set to false, for Orca set to true
+ #define INVERT_E0_DIR false   // for direct drive extruder v9 set to true, for geared extruder set to false
+ #define INVERT_E1_DIR false   // for direct drive extruder v9 set to true, for geared extruder set to false
+ #define INVERT_E2_DIR false   // for direct drive extruder v9 set to true, for geared extruder set to false
+@@ -318,14 +321,14 @@
+ //{SD Patch} END
+ 
+ //// MOVEMENT SETTINGS
+-#define NUM_AXIS 4 // The axis order in all axis related arrays is X, Y, Z, E
+-#define HOMING_FEEDRATE {50*60, 50*60, 4*60, 0}  // set the homing speeds (mm/min)
++#define NUM_AXIS 5 // The axis order in all axis related arrays is X, Y, Z, E, R
++#define HOMING_FEEDRATE {50*60, 50*60, 4*60, 0, 50*60}  // set the homing speeds (mm/min)
+ 
+ // default settings 
+ 
+-#define DEFAULT_AXIS_STEPS_PER_UNIT   {88,88,2268,115}  //{SD Patch} // default steps per unit for ultimaker
+-#define DEFAULT_MAX_FEEDRATE          {500, 500, 5, 45}    //{SD Patch} // (mm/sec)
+-#define DEFAULT_MAX_ACCELERATION      {9000,9000,100,10000}    // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for skeinforge 40+, for older versions raise them a lot.
++#define DEFAULT_AXIS_STEPS_PER_UNIT   {88,88,2268,115,31}  //{SD Patch} // default steps per unit for ultimaker
++#define DEFAULT_MAX_FEEDRATE          {500, 500, 5, 45, 500}    //{SD Patch} // (mm/sec)
++#define DEFAULT_MAX_ACCELERATION      {9000,9000,100,10000,9000}    // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for skeinforge 40+, for older versions raise them a lot.
+ 
+ #define DEFAULT_ACCELERATION          3000    // X, Y, Z and E max acceleration in mm/s^2 for printing moves 
+ #define DEFAULT_RETRACT_ACCELERATION  3000   // X, Y, Z and E max acceleration in mm/s^2 for r retracts
+@@ -338,6 +341,7 @@
+ 
+ // The speed change that does not require acceleration (i.e. the software might assume it can be done instanteneously)
+ #define DEFAULT_XYJERK                20.0    // (mm/sec)
++#define DEFAULT_RJERK                 5.0    // (mm/sec)
+ #define DEFAULT_ZJERK                 0.4     // (mm/sec)
+ #define DEFAULT_EJERK                 5.0    // (mm/sec)
+ 
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/ConfigurationStore.cpp solidoodle2-Marlin-master/Marlin/ConfigurationStore.cpp
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/ConfigurationStore.cpp	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/Marlin/ConfigurationStore.cpp	2013-08-30 08:29:51.000000000 -0400
+@@ -56,6 +56,7 @@
+   EEPROM_WRITE_VAR(i,max_xy_jerk);
+   EEPROM_WRITE_VAR(i,max_z_jerk);
+   EEPROM_WRITE_VAR(i,max_e_jerk);
++  EEPROM_WRITE_VAR(i,max_r_jerk);
+   EEPROM_WRITE_VAR(i,add_homeing);
+   #ifndef ULTIPANEL
+   int plaPreheatHotendTemp = PLA_PREHEAT_HOTEND_TEMP, plaPreheatHPBTemp = PLA_PREHEAT_HPB_TEMP, plaPreheatFanSpeed = PLA_PREHEAT_FAN_SPEED;
+@@ -97,6 +98,7 @@
+     SERIAL_ECHOPAIR(" Y",axis_steps_per_unit[1]);
+     SERIAL_ECHOPAIR(" Z",axis_steps_per_unit[2]);
+     SERIAL_ECHOPAIR(" E",axis_steps_per_unit[3]);
++    SERIAL_ECHOPAIR(" R",axis_steps_per_unit[4]);
+     SERIAL_ECHOLN("");
+       
+     SERIAL_ECHO_START;
+@@ -106,6 +108,7 @@
+     SERIAL_ECHOPAIR(" Y",max_feedrate[1] ); 
+     SERIAL_ECHOPAIR(" Z", max_feedrate[2] ); 
+     SERIAL_ECHOPAIR(" E", max_feedrate[3]);
++    SERIAL_ECHOPAIR(" R", max_feedrate[4]);
+     SERIAL_ECHOLN("");
+ 
+     SERIAL_ECHO_START;
+@@ -115,6 +118,7 @@
+     SERIAL_ECHOPAIR(" Y" , max_acceleration_units_per_sq_second[1] ); 
+     SERIAL_ECHOPAIR(" Z" ,max_acceleration_units_per_sq_second[2] );
+     SERIAL_ECHOPAIR(" E" ,max_acceleration_units_per_sq_second[3]);
++    SERIAL_ECHOPAIR(" R" ,max_acceleration_units_per_sq_second[4]);
+     SERIAL_ECHOLN("");
+     SERIAL_ECHO_START;
+     SERIAL_ECHOLNPGM("Acceleration: S=acceleration, T=retract acceleration");
+@@ -132,6 +136,7 @@
+     SERIAL_ECHOPAIR(" X" ,max_xy_jerk ); 
+     SERIAL_ECHOPAIR(" Z" ,max_z_jerk);
+     SERIAL_ECHOPAIR(" E" ,max_e_jerk);
++    SERIAL_ECHOPAIR(" R" ,max_r_jerk);
+     SERIAL_ECHOLN(""); 
+ 
+     SERIAL_ECHO_START;
+@@ -180,6 +185,7 @@
+         EEPROM_READ_VAR(i,max_xy_jerk);
+         EEPROM_READ_VAR(i,max_z_jerk);
+         EEPROM_READ_VAR(i,max_e_jerk);
++        EEPROM_READ_VAR(i,max_r_jerk);
+         EEPROM_READ_VAR(i,add_homeing);
+         #ifndef ULTIPANEL
+         int plaPreheatHotendTemp, plaPreheatHPBTemp, plaPreheatFanSpeed;
+@@ -217,7 +223,7 @@
+     float tmp1[]=DEFAULT_AXIS_STEPS_PER_UNIT;
+     float tmp2[]=DEFAULT_MAX_FEEDRATE;
+     long tmp3[]=DEFAULT_MAX_ACCELERATION;
+-    for (short i=0;i<4;i++) 
++    for (short i=0; i<NUM_AXIS; i++)
+     {
+         axis_steps_per_unit[i]=tmp1[i];  
+         max_feedrate[i]=tmp2[i];  
+@@ -235,6 +241,7 @@
+     max_xy_jerk=DEFAULT_XYJERK;
+     max_z_jerk=DEFAULT_ZJERK;
+     max_e_jerk=DEFAULT_EJERK;
++    max_r_jerk=DEFAULT_RJERK;
+     add_homeing[0] = add_homeing[1] = add_homeing[2] = 0;
+ #ifdef ULTIPANEL
+     plaPreheatHotendTemp = PLA_PREHEAT_HOTEND_TEMP;
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/Hysteresis.cpp solidoodle2-Marlin-master/Marlin/Hysteresis.cpp
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/Hysteresis.cpp	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/Marlin/Hysteresis.cpp	2013-08-30 08:29:51.000000000 -0400
+@@ -28,27 +28,29 @@
+ 
+ //===========================================================================
+ 
+-Hysteresis hysteresis( 0.0f, 0.0f, 0.0f, 0.0f );
+-float axis_shift[ NUM_AXIS ] = { 0.0f, 0.0f, 0.0f, 0.0f };
++Hysteresis hysteresis( 0.0f, 0.0f, 0.0f, 0.0f, 0.0f );
++float axis_shift[ NUM_AXIS ] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+ 
+ //===========================================================================
+-Hysteresis::Hysteresis( float x_mm, float y_mm, float z_mm, float e_mm )
++Hysteresis::Hysteresis(float x_mm, float y_mm, float z_mm, float e_mm , float r_mm)
+ {
+   m_prev_direction_bits = 0;
+-  Set( x_mm, y_mm, z_mm, e_mm );
++  Set( x_mm, y_mm, z_mm, e_mm, r_mm );
+ }
+ 
+ //===========================================================================
+-void Hysteresis::Set( float x_mm, float y_mm, float z_mm, float e_mm )
++void Hysteresis::Set( float x_mm, float y_mm, float z_mm, float e_mm, float r_mm )
+ {
+   m_hysteresis_mm[X_AXIS] = x_mm;
+   m_hysteresis_mm[Y_AXIS] = y_mm;
+   m_hysteresis_mm[Z_AXIS] = z_mm;
+   m_hysteresis_mm[E_AXIS] = e_mm;
++  m_hysteresis_mm[R_AXIS] = r_mm;
+   m_hysteresis_bits = ((m_hysteresis_mm[X_AXIS]!=0.0f)?(1<<X_AXIS):0)
+                     | ((m_hysteresis_mm[Y_AXIS]!=0.0f)?(1<<Y_AXIS):0)
+                     | ((m_hysteresis_mm[Z_AXIS]!=0.0f)?(1<<Z_AXIS):0)
+-                    | ((m_hysteresis_mm[E_AXIS]!=0.0f)?(1<<E_AXIS):0);
++                    | ((m_hysteresis_mm[E_AXIS]!=0.0f)?(1<<E_AXIS):0)
++                    | ((m_hysteresis_mm[R_AXIS]!=0.0f)?(1<<R_AXIS):0);
+   calcSteps();
+ }
+ 
+@@ -88,6 +90,8 @@
+   SERIAL_PROTOCOL(m_hysteresis_mm[Z_AXIS]);
+   SERIAL_PROTOCOLPGM(" E");      
+   SERIAL_PROTOCOL(m_hysteresis_mm[E_AXIS]);
++  SERIAL_PROTOCOLPGM(" R");
++  SERIAL_PROTOCOL(m_hysteresis_mm[R_AXIS]);
+   SERIAL_PROTOCOLPGM(" SHIFTS:x=");      
+   SERIAL_PROTOCOL(axis_shift[X_AXIS]);
+   SERIAL_PROTOCOLPGM(" y=");      
+@@ -96,6 +100,8 @@
+   SERIAL_PROTOCOL(axis_shift[Z_AXIS]);
+   SERIAL_PROTOCOLPGM(" e=");      
+   SERIAL_PROTOCOL(axis_shift[E_AXIS]);
++  SERIAL_PROTOCOLPGM(" r=");
++  SERIAL_PROTOCOL(axis_shift[R_AXIS]);
+   
+   SERIAL_PROTOCOLLN("");
+ }
+@@ -117,6 +123,9 @@
+   if (destination[E_AXIS] < current_position[E_AXIS]) { 
+     direction_bits |= (1<<E_AXIS); 
+   }
++  if (destination[R_AXIS] < current_position[R_AXIS]) {
++    direction_bits |= (1<<R_AXIS);
++  }
+   return direction_bits;
+ }
+ 
+@@ -135,13 +144,16 @@
+   if (destination[E_AXIS] != current_position[E_AXIS]) { 
+     move_bits |= (1<<E_AXIS); 
+   }
++  if (destination[R_AXIS] != current_position[R_AXIS]) {
++    move_bits |= (1<<R_AXIS);
++  }
+   return move_bits;
+ }
+ //===========================================================================
+ // insert a plan_buffer_line if required to handle any hysteresis
+-void Hysteresis::InsertCorrection(const float &x, const float &y, const float &z, const float &e)
++void Hysteresis::InsertCorrection(const float &x, const float &y, const float &z, const float &e, const float &r)
+ {
+-  long destination[NUM_AXIS] = {x*axis_steps_per_unit[X_AXIS],y*axis_steps_per_unit[Y_AXIS],z*axis_steps_per_unit[Z_AXIS],e*axis_steps_per_unit[E_AXIS]};
++  long destination[NUM_AXIS] = {x*axis_steps_per_unit[X_AXIS],y*axis_steps_per_unit[Y_AXIS],z*axis_steps_per_unit[Z_AXIS],e*axis_steps_per_unit[E_AXIS], r*axis_steps_per_unit[R_AXIS]};
+   unsigned char direction_bits = calc_direction_bits( position, destination );
+   unsigned char move_bits = calc_move_bits(position, destination);
+   // if the direction has changed in any of the axis that need hysteresis corrections...
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/Hysteresis.h solidoodle2-Marlin-master/Marlin/Hysteresis.h
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/Hysteresis.h	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/Marlin/Hysteresis.h	2013-08-30 08:29:51.000000000 -0400
+@@ -31,6 +31,7 @@
+       if(code_seen('Y')) hysteresis.SetAxis( Y_AXIS, code_value() );    \
+       if(code_seen('Z')) hysteresis.SetAxis( Z_AXIS, code_value() );    \
+       if(code_seen('E')) hysteresis.SetAxis( E_AXIS, code_value() );    \
++      if(code_seen('R')) hysteresis.SetAxis( R_AXIS, code_value() );    \
+     }                                                                   \
+     break;
+ 
+@@ -39,12 +40,12 @@
+ class Hysteresis
+ {
+ public:
+-  Hysteresis( float x_mm, float y_mm, float z_mm, float e_mm );
++  Hysteresis( float x_mm, float y_mm, float z_mm, float e_mm, float r_mm );
+   
+-  void Set( float x_mm, float y_mm, float z_mm, float e_mm );
++  void Set(float x_mm, float y_mm, float z_mm, float e_mm , float r_mm);
+   void SetAxis( int axis, float mm );
+   void ReportToSerial();
+-  void InsertCorrection(const float &x, const float &y, const float &z, const float &e);
++  void InsertCorrection(const float &x, const float &y, const float &z, const float &e, const float &r);
+ 
+ private:
+   void          calcSteps();
+@@ -57,4 +58,4 @@
+ //===========================================================================
+ 
+ extern Hysteresis hysteresis;
+-extern long position[4]; // defined in planner.cpp
++extern long position[NUM_AXIS]; // defined in planner.cpp
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/Marlin.h solidoodle2-Marlin-master/Marlin/Marlin.h
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/Marlin.h	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/Marlin/Marlin.h	2013-08-30 08:29:51.000000000 -0400
+@@ -125,6 +125,14 @@
+   #define disable_z() ;
+ #endif
+ 
++#if R_ENABLE_PIN > -1
++  #define  enable_r() WRITE(R_ENABLE_PIN, R_ENABLE_ON)
++  #define disable_r() WRITE(R_ENABLE_PIN,!R_ENABLE_ON)
++#else
++  #define enable_r() ;
++  #define disable_r() ;
++#endif
++
+ #if defined(E0_ENABLE_PIN) && (E0_ENABLE_PIN > -1)
+   #define enable_e0() WRITE(E0_ENABLE_PIN, E_ENABLE_ON)
+   #define disable_e0() WRITE(E0_ENABLE_PIN,!E_ENABLE_ON)
+@@ -150,7 +158,7 @@
+ #endif
+ 
+ 
+-enum AxisEnum {X_AXIS=0, Y_AXIS=1, Z_AXIS=2, E_AXIS=3};
++enum AxisEnum {X_AXIS=0, Y_AXIS=1, Z_AXIS=2, E_AXIS=3, R_AXIS=4};
+ 
+ 
+ void FlushSerialRequestResend();
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/Marlin_main.cpp solidoodle2-Marlin-master/Marlin/Marlin_main.cpp
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/Marlin_main.cpp	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/Marlin/Marlin_main.cpp	2013-08-30 08:29:51.000000000 -0400
+@@ -156,7 +156,7 @@
+ int feedmultiply=100; //100->1 200->2
+ int saved_feedmultiply;
+ int extrudemultiply=100; //100->1 200->2
+-float current_position[NUM_AXIS] = { 0.0, 0.0, 0.0, 0.0 };
++float current_position[NUM_AXIS] = { 0.0, 0.0, 0.0, 0.0, 0.0 };
+ float add_homeing[3]={0,0,0};
+ float min_pos[3] = { X_MIN_POS, Y_MIN_POS, Z_MIN_POS };
+ float max_pos[3] = { X_MAX_POS, Y_MAX_POS, Z_MAX_POS };
+@@ -181,8 +181,8 @@
+ //===========================================================================
+ //=============================private variables=============================
+ //===========================================================================
+-const char axis_codes[NUM_AXIS] = {'X', 'Y', 'Z', 'E'};
+-static float destination[NUM_AXIS] = {  0.0, 0.0, 0.0, 0.0};
++const char axis_codes[NUM_AXIS] = {'X', 'Y', 'Z', 'E', 'R'};
++static float destination[NUM_AXIS] = {  0.0, 0.0, 0.0, 0.0, 0.0};
+ static float offset[3] = {0.0, 0.0, 0.0};
+ static bool home_all_axis = true;
+ static float feedrate = 1500.0, next_feedrate, saved_feedrate;
+@@ -645,21 +645,21 @@
+       axis==Z_AXIS ? HOMEAXIS_DO(Z) :
+       0) {
+     current_position[axis] = 0;
+-    plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
++    plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], current_position[R_AXIS]);
+     destination[axis] = 1.5 * max_length(axis) * home_dir(axis);
+     feedrate = homing_feedrate[axis];
+-    plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], feedrate/60, active_extruder);
++    plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], current_position[R_AXIS], feedrate/60, active_extruder);
+     st_synchronize();
+    
+     current_position[axis] = 0;
+-    plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
++    plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], current_position[R_AXIS]);
+     destination[axis] = -home_retract_mm(axis) * home_dir(axis);
+-    plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], feedrate/60, active_extruder);
++    plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], current_position[R_AXIS], feedrate/60, active_extruder);
+     st_synchronize();
+    
+     destination[axis] = 2*home_retract_mm(axis) * home_dir(axis);
+     feedrate = homing_feedrate[axis]/2 ; 
+-    plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], feedrate/60, active_extruder);
++    plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], current_position[R_AXIS], feedrate/60, active_extruder);
+     st_synchronize();
+    
+     axis_is_at_home(axis);					
+@@ -682,7 +682,7 @@
+     case 0: // G0 -> G1
+     case 1: // G1
+       if(Stopped == false) {
+-        get_coordinates(); // For X Y Z E F
++        get_coordinates(); // For X Y Z E R
+         prepare_move();
+         //ClearToSend();
+         return;
+@@ -823,7 +823,7 @@
+           current_position[Z_AXIS]=code_value()+add_homeing[2];
+         }
+       }
+-      plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
++      plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], current_position[R_AXIS]);
+       
+       #ifdef ENDSTOPS_ONLY_FOR_HOMING
+         enable_endstops(false);
+@@ -849,9 +849,11 @@
+              current_position[i] = code_value();  
+              plan_set_e_position(current_position[E_AXIS]);
+            }
+-           else {
++           else if (i == R_AXIS) {
++            current_position[i] = code_value();
++           } else {
+              current_position[i] = code_value()+add_homeing[i];  
+-             plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
++             plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], current_position[R_AXIS]);
+            }
+         }
+       }
+@@ -1272,6 +1274,8 @@
+       SERIAL_PROTOCOL(current_position[Z_AXIS]);
+       SERIAL_PROTOCOLPGM("E:");      
+       SERIAL_PROTOCOL(current_position[E_AXIS]);
++      SERIAL_PROTOCOLPGM("R:");
++      SERIAL_PROTOCOL(current_position[R_AXIS]);
+       
+       SERIAL_PROTOCOLPGM(MSG_COUNT_X);
+       SERIAL_PROTOCOL(float(st_get_position(X_AXIS))/axis_steps_per_unit[X_AXIS]);
+@@ -1279,6 +1283,8 @@
+       SERIAL_PROTOCOL(float(st_get_position(Y_AXIS))/axis_steps_per_unit[Y_AXIS]);
+       SERIAL_PROTOCOLPGM("Z:");
+       SERIAL_PROTOCOL(float(st_get_position(Z_AXIS))/axis_steps_per_unit[Z_AXIS]);
++      SERIAL_PROTOCOLPGM("R:");
++      SERIAL_PROTOCOL(float(st_get_position(R_AXIS))/axis_steps_per_unit[R_AXIS]);
+       
+       SERIAL_PROTOCOLLN("");
+       break;
+@@ -1353,6 +1359,7 @@
+       if(code_seen('X')) max_xy_jerk = code_value() ;
+       if(code_seen('Z')) max_z_jerk = code_value() ;
+       if(code_seen('E')) max_e_jerk = code_value() ;
++      if(code_seen('R')) max_r_jerk = code_value() ;
+     }
+     break;
+     case 206: // M206 additional homeing offset
+@@ -1588,16 +1595,18 @@
+     #ifdef FILAMENTCHANGEENABLE
+     case 600: //Pause for filament change X[pos] Y[pos] Z[relative lift] E[initial retract] L[later retract distance for removal]
+     {
+-        float target[4];
+-        float lastpos[4];
++        float target[NUM_AXIS];
++        float lastpos[NUM_AXIS];
+         target[X_AXIS]=current_position[X_AXIS];
+         target[Y_AXIS]=current_position[Y_AXIS];
+         target[Z_AXIS]=current_position[Z_AXIS];
+         target[E_AXIS]=current_position[E_AXIS];
++        target[R_AXIS]=current_position[R_AXIS];
+         lastpos[X_AXIS]=current_position[X_AXIS];
+         lastpos[Y_AXIS]=current_position[Y_AXIS];
+         lastpos[Z_AXIS]=current_position[Z_AXIS];
+         lastpos[E_AXIS]=current_position[E_AXIS];
++        lastpos[R_AXIS]=current_position[R_AXIS];
+         //retract by E
+         if(code_seen('E')) 
+         {
+@@ -1841,7 +1850,7 @@
+ 
+ void get_coordinates()
+ {
+-  bool seen[4]={false,false,false,false};
++  bool seen[NUM_AXIS]={false,false,false,false,false};
+   for(int8_t i=0; i < NUM_AXIS; i++) {
+     if(code_seen(axis_codes[i])) 
+     {
+@@ -1939,10 +1948,10 @@
+   previous_millis_cmd = millis(); 
+   // Do not use feedmultiply for E or Z only moves
+   if( (current_position[X_AXIS] == destination [X_AXIS]) && (current_position[Y_AXIS] == destination [Y_AXIS])) {
+-      plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], feedrate/60, active_extruder);
++      plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], destination[R_AXIS], feedrate/60, active_extruder);
+   }
+   else {
+-    plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], feedrate*feedmultiply/60/100.0, active_extruder);
++    plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], destination[R_AXIS], feedrate*feedmultiply/60/100.0, active_extruder);
+   }
+   for(int8_t i=0; i < NUM_AXIS; i++) {
+     current_position[i] = destination[i];
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/motion_control.cpp solidoodle2-Marlin-master/Marlin/motion_control.cpp
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/motion_control.cpp	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/Marlin/motion_control.cpp	2013-08-30 08:29:51.000000000 -0400
+@@ -88,7 +88,7 @@
+   float cos_T = 1-0.5*theta_per_segment*theta_per_segment; // Small angle approximation
+   float sin_T = theta_per_segment;
+   
+-  float arc_target[4];
++  float arc_target[NUM_AXIS];
+   float sin_Ti;
+   float cos_Ti;
+   float r_axisi;
+@@ -100,6 +100,7 @@
+   
+   // Initialize the extruder axis
+   arc_target[E_AXIS] = position[E_AXIS];
++  arc_target[R_AXIS] = position[R_AXIS];
+ 
+   for (i = 1; i<segments; i++) { // Increment (segments-1)
+     
+@@ -126,11 +127,11 @@
+     arc_target[E_AXIS] += extruder_per_segment;
+ 
+     clamp_to_software_endstops(arc_target);
+-    plan_buffer_line(arc_target[X_AXIS], arc_target[Y_AXIS], arc_target[Z_AXIS], arc_target[E_AXIS], feed_rate, extruder);
++    plan_buffer_line(arc_target[X_AXIS], arc_target[Y_AXIS], arc_target[Z_AXIS], arc_target[E_AXIS], arc_target[R_AXIS], feed_rate, extruder);
+     
+   }
+   // Ensure last segment arrives at target location.
+-  plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], feed_rate, extruder);
++  plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], arc_target[R_AXIS], feed_rate, extruder);
+ 
+   //   plan_set_acceleration_manager_enabled(acceleration_manager_was_enabled);
+ }
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/pins.h solidoodle2-Marlin-master/Marlin/pins.h
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/pins.h	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/Marlin/pins.h	2013-08-30 08:29:51.000000000 -0400
+@@ -665,6 +665,10 @@
+ #endif
+ #endif
+ 
++#define R_STEP_PIN         16
++#define R_DIR_PIN          17
++#define R_ENABLE_PIN       -1
++
+ #define X_STEP_PIN         15
+ #define X_DIR_PIN          21
+ #define X_STOP_PIN         18
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/planner.cpp solidoodle2-Marlin-master/Marlin/planner.cpp
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/planner.cpp	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/Marlin/planner.cpp	2013-08-30 08:29:51.000000000 -0400
+@@ -65,21 +65,22 @@
+ //===========================================================================
+ 
+ unsigned long minsegmenttime;
+-float max_feedrate[4]; // set the max speeds
+-float axis_steps_per_unit[4];
+-unsigned long max_acceleration_units_per_sq_second[4]; // Use M201 to override by software
++float max_feedrate[NUM_AXIS]; // set the max speeds
++float axis_steps_per_unit[NUM_AXIS];
++unsigned long max_acceleration_units_per_sq_second[NUM_AXIS]; // Use M201 to override by software
+ float minimumfeedrate;
+ float acceleration;         // Normal acceleration mm/s^2  THIS IS THE DEFAULT ACCELERATION for all moves. M204 SXXXX
+ float retract_acceleration; //  mm/s^2   filament pull-pack and push-forward  while standing still in the other axis M204 TXXXX
+ float max_xy_jerk; //speed than can be stopped at once, if i understand correctly.
+ float max_z_jerk;
+ float max_e_jerk;
++float max_r_jerk;
+ float mintravelfeedrate;
+ unsigned long axis_steps_per_sqr_second[NUM_AXIS];
+ 
+ // The current position of the tool in absolute steps
+-long position[4];   //rescaled from extern when axis_steps_per_unit are changed by gcode
+-static float previous_speed[4]; // Speed of previous path line segment
++long position[NUM_AXIS];   //rescaled from extern when axis_steps_per_unit are changed by gcode
++static float previous_speed[NUM_AXIS]; // Speed of previous path line segment
+ static float previous_nominal_speed; // Nominal speed of previous path line segment
+ 
+ #ifdef AUTOTEMP
+@@ -495,10 +496,10 @@
+ // Add a new linear movement to the buffer. steps_x, _y and _z is the absolute position in 
+ // mm. Microseconds specify how many microseconds the move should take to perform. To aid acceleration
+ // calculation the caller must also provide the physical length of the line in millimeters.
+-void plan_buffer_line(const float &x, const float &y, const float &z, const float &e, float feed_rate, const uint8_t &extruder)
++void plan_buffer_line(const float &x, const float &y, const float &z, const float &e, const float &r, float feed_rate, const uint8_t &extruder)
+ {
+   zwobble.InsertCorrection(z); //{SD Patch}
+-  hysteresis.InsertCorrection(x,y,z,e); //{SD Patch}
++  hysteresis.InsertCorrection(x,y,z,e,r); //{SD Patch}
+ 
+   // Calculate the buffer head after we push this byte
+   int next_buffer_head = next_block_index(block_buffer_head);
+@@ -515,11 +516,12 @@
+   // The target position of the tool in absolute steps
+   // Calculate target position in absolute steps
+   //this should be done after the wait, because otherwise a M92 code within the gcode disrupts this calculation somehow
+-  long target[4];
++  long target[NUM_AXIS];
+   target[X_AXIS] = lround(x*axis_steps_per_unit[X_AXIS]);
+   target[Y_AXIS] = lround(y*axis_steps_per_unit[Y_AXIS]);
+   target[Z_AXIS] = lround(z*axis_steps_per_unit[Z_AXIS]);     
+   target[E_AXIS] = lround(e*axis_steps_per_unit[E_AXIS]);
++  target[R_AXIS] = lround(r*axis_steps_per_unit[R_AXIS]);
+ 
+   #ifdef PREVENT_DANGEROUS_EXTRUDE
+   if(target[E_AXIS]!=position[E_AXIS])
+@@ -553,9 +555,10 @@
+   block->steps_y = labs(target[Y_AXIS]-position[Y_AXIS]);
+   block->steps_z = labs(target[Z_AXIS]-position[Z_AXIS]);
+   block->steps_e = labs(target[E_AXIS]-position[E_AXIS]);
++  block->steps_r = labs(target[R_AXIS]-position[R_AXIS]);
+   block->steps_e *= extrudemultiply;
+   block->steps_e /= 100;
+-  block->step_event_count = max(block->steps_x, max(block->steps_y, max(block->steps_z, block->steps_e)));
++  block->step_event_count = max(block->steps_r, max(block->steps_x, max(block->steps_y, max(block->steps_z, block->steps_e))));
+ 
+   // Bail if this is a zero-length block
+   if (block->step_event_count <= dropsegments)
+@@ -583,6 +586,10 @@
+   {
+     block->direction_bits |= (1<<E_AXIS); 
+   }
++  if (target[R_AXIS] < position[R_AXIS])
++  {
++    block->direction_bits |= (1<<R_AXIS);
++  }
+ 
+   block->active_extruder = extruder;
+ 
+@@ -618,18 +625,19 @@
+     if(feed_rate<minimumfeedrate) feed_rate=minimumfeedrate;
+   } 
+ 
+-  float delta_mm[4];
++  float delta_mm[NUM_AXIS];
+   delta_mm[X_AXIS] = (target[X_AXIS]-position[X_AXIS])/axis_steps_per_unit[X_AXIS];
+   delta_mm[Y_AXIS] = (target[Y_AXIS]-position[Y_AXIS])/axis_steps_per_unit[Y_AXIS];
+   delta_mm[Z_AXIS] = (target[Z_AXIS]-position[Z_AXIS])/axis_steps_per_unit[Z_AXIS];
++  delta_mm[R_AXIS] = (target[R_AXIS]-position[R_AXIS])/axis_steps_per_unit[R_AXIS];
+   delta_mm[E_AXIS] = ((target[E_AXIS]-position[E_AXIS])/axis_steps_per_unit[E_AXIS])*extrudemultiply/100.0;
+-  if ( block->steps_x <=dropsegments && block->steps_y <=dropsegments && block->steps_z <=dropsegments )
++  if ( block->steps_x <=dropsegments && block->steps_y <=dropsegments && block->steps_z <=dropsegments && block->steps_r <= dropsegments)
+   {
+     block->millimeters = fabs(delta_mm[E_AXIS]);
+   } 
+   else
+   {
+-    block->millimeters = sqrt(square(delta_mm[X_AXIS]) + square(delta_mm[Y_AXIS]) + square(delta_mm[Z_AXIS]));
++    block->millimeters = sqrt(square(delta_mm[X_AXIS]) + square(delta_mm[Y_AXIS]) + square(delta_mm[Z_AXIS]) + square(delta_mm[R_AXIS]));
+   }
+   float inverse_millimeters = 1.0/block->millimeters;  // Inverse millimeters to remove multiple divides 
+ 
+@@ -664,10 +672,14 @@
+   block->nominal_speed = block->millimeters * inverse_second; // (mm/sec) Always > 0
+   block->nominal_rate = ceil(block->step_event_count * inverse_second); // (step/sec) Always > 0
+ 
++  /// dirty hack to accelerate R_AXIS I don't know how to accelerate it normal way.
++  //if (abs(delta_mm[R_AXIS]) > 5 && abs(delta_mm[X_AXIS]) < 1 && abs(delta_mm[Y_AXIS]) < 1)
++  //    block->nominal_rate *= 10;
++
+   // Calculate and limit speed in mm/sec for each axis
+-  float current_speed[4];
++  float current_speed[NUM_AXIS];
+   float speed_factor = 1.0; //factor <=1 do decrease speed
+-  for(int i=0; i < 4; i++)
++  for(int i=0; i < NUM_AXIS; i++)
+   {
+     current_speed[i] = delta_mm[i] * inverse_second;
+     if(fabs(current_speed[i]) > max_feedrate[i])
+@@ -712,7 +724,7 @@
+   // Correct the speed  
+   if( speed_factor < 1.0)
+   {
+-    for(unsigned char i=0; i < 4; i++)
++    for(unsigned char i=0; i < NUM_AXIS; i++)
+     {
+       current_speed[i] *= speed_factor;
+     }
+@@ -722,7 +734,7 @@
+ 
+   // Compute and limit the acceleration rate for the trapezoid generator.  
+   float steps_per_mm = block->step_event_count/block->millimeters;
+-  if(block->steps_x == 0 && block->steps_y == 0 && block->steps_z == 0)
++  if(block->steps_x == 0 && block->steps_y == 0 && block->steps_z == 0 && block->steps_r == 0)
+   {
+     block->acceleration_st = ceil(retract_acceleration * steps_per_mm); // convert to: acceleration steps/sec^2
+   }
+@@ -738,6 +750,8 @@
+       block->acceleration_st = axis_steps_per_sqr_second[E_AXIS];
+     if(((float)block->acceleration_st * (float)block->steps_z / (float)block->step_event_count ) > axis_steps_per_sqr_second[Z_AXIS])
+       block->acceleration_st = axis_steps_per_sqr_second[Z_AXIS];
++    if(((float)block->acceleration_st * (float)block->steps_r / (float)block->step_event_count ) > axis_steps_per_sqr_second[R_AXIS])
++      block->acceleration_st = axis_steps_per_sqr_second[R_AXIS];
+   }
+   block->acceleration = block->acceleration_st / steps_per_mm;
+   block->acceleration_rate = (long)((float)block->acceleration_st * 8.388608);
+@@ -803,6 +817,9 @@
+     if(fabs(current_speed[Z_AXIS] - previous_speed[Z_AXIS]) > max_z_jerk) {
+       vmax_junction_factor= min(vmax_junction_factor, (max_z_jerk/fabs(current_speed[Z_AXIS] - previous_speed[Z_AXIS])));
+     } 
++    if(fabs(current_speed[R_AXIS] - previous_speed[R_AXIS]) > max_r_jerk) {
++      vmax_junction_factor= min(vmax_junction_factor, (max_r_jerk/fabs(current_speed[R_AXIS] - previous_speed[R_AXIS])));
++    }
+     if(fabs(current_speed[E_AXIS] - previous_speed[E_AXIS]) > max_e_jerk) {
+       vmax_junction_factor = min(vmax_junction_factor, (max_e_jerk/fabs(current_speed[E_AXIS] - previous_speed[E_AXIS])));
+     } 
+@@ -876,13 +893,14 @@
+   st_wake_up();
+ }
+ 
+-void plan_set_position(const float &x, const float &y, const float &z, const float &e)
++void plan_set_position(const float &x, const float &y, const float &z, const float &e, const float &r)
+ {
+   position[X_AXIS] = lround(x*axis_steps_per_unit[X_AXIS]);
+   position[Y_AXIS] = lround(y*axis_steps_per_unit[Y_AXIS]);
+   position[Z_AXIS] = lround(z*axis_steps_per_unit[Z_AXIS]);     
+   position[E_AXIS] = lround(e*axis_steps_per_unit[E_AXIS]);  
+-  st_set_position(position[X_AXIS], position[Y_AXIS], position[Z_AXIS], position[E_AXIS]);
++  position[R_AXIS] = lround(r*axis_steps_per_unit[R_AXIS]);
++  st_set_position(position[X_AXIS], position[Y_AXIS], position[Z_AXIS], position[E_AXIS], position[R_AXIS]);
+   previous_nominal_speed = 0.0; // Resets planner junction speeds. Assumes start from rest.
+   previous_speed[0] = 0.0;
+   previous_speed[1] = 0.0;
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/planner.h solidoodle2-Marlin-master/Marlin/planner.h
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/planner.h	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/Marlin/planner.h	2013-08-30 08:29:51.000000000 -0400
+@@ -30,7 +30,7 @@
+ // the source g-code and may never actually be reached if acceleration management is active.
+ typedef struct {
+   // Fields used by the bresenham algorithm for tracing the line
+-  long steps_x, steps_y, steps_z, steps_e;  // Step count along each axis
++  long steps_x, steps_y, steps_z, steps_e, steps_r;  // Step count along each axis
+   unsigned long step_event_count;           // The number of step events required to complete this block
+   long accelerate_until;                    // The index of the step event on which to stop acceleration
+   long decelerate_after;                    // The index of the step event on which to start decelerating
+@@ -68,10 +68,10 @@
+ 
+ // Add a new linear movement to the buffer. x, y and z is the signed, absolute target position in 
+ // millimaters. Feed rate specifies the speed of the motion.
+-void plan_buffer_line(const float &x, const float &y, const float &z, const float &e, float feed_rate, const uint8_t &extruder);
++void plan_buffer_line(const float &x, const float &y, const float &z, const float &e, const float &r, float feed_rate, const uint8_t &extruder);
+ 
+ // Set position. Used for G92 instructions.
+-void plan_set_position(const float &x, const float &y, const float &z, const float &e);
++void plan_set_position(const float &x, const float &y, const float &z, const float &e, const float &r);
+ void plan_set_e_position(const float &e);
+ 
+ 
+@@ -80,15 +80,16 @@
+ uint8_t movesplanned(); //return the nr of buffered moves
+ 
+ extern unsigned long minsegmenttime;
+-extern float max_feedrate[4]; // set the max speeds
+-extern float axis_steps_per_unit[4];
+-extern unsigned long max_acceleration_units_per_sq_second[4]; // Use M201 to override by software
++extern float max_feedrate[NUM_AXIS]; // set the max speeds
++extern float axis_steps_per_unit[NUM_AXIS];
++extern unsigned long max_acceleration_units_per_sq_second[NUM_AXIS]; // Use M201 to override by software
+ extern float minimumfeedrate;
+ extern float acceleration;         // Normal acceleration mm/s^2  THIS IS THE DEFAULT ACCELERATION for all moves. M204 SXXXX
+ extern float retract_acceleration; //  mm/s^2   filament pull-pack and push-forward  while standing still in the other axis M204 TXXXX
+ extern float max_xy_jerk; //speed than can be stopped at once, if i understand correctly.
+ extern float max_z_jerk;
+ extern float max_e_jerk;
++extern float max_r_jerk;
+ extern float mintravelfeedrate;
+ extern unsigned long axis_steps_per_sqr_second[NUM_AXIS];
+ 
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/stepper.cpp solidoodle2-Marlin-master/Marlin/stepper.cpp
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/stepper.cpp	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/Marlin/stepper.cpp	2013-08-30 08:29:51.000000000 -0400
+@@ -50,7 +50,9 @@
+ static long counter_x,       // Counter variables for the bresenham line tracer
+             counter_y, 
+             counter_z,       
+-            counter_e;
++            counter_e,
++            counter_r;
++
+ volatile static unsigned long step_events_completed; // The number of step events executed in the current block
+ #ifdef ADVANCE
+   static long advance_rate, advance, final_advance = 0;
+@@ -82,8 +84,8 @@
+ 
+ static bool check_endstops = true;
+ 
+-volatile long count_position[NUM_AXIS] = { 0, 0, 0, 0};
+-volatile signed char count_direction[NUM_AXIS] = { 1, 1, 1, 1};
++volatile long count_position[NUM_AXIS] = { 0, 0, 0, 0, 0};
++volatile signed char count_direction[NUM_AXIS] = { 1, 1, 1, 1, 1};
+ 
+ //===========================================================================
+ //=============================functions         ============================
+@@ -289,6 +291,9 @@
+   deceleration_time = 0;
+   // step_rate to timer interval
+   OCR1A_nominal = calc_timer(current_block->nominal_rate);
++
++  //MYSERIAL.print("calculating timers"); MYSERIAL.println(OCR1A_nominal);
++
+   // make a note of the number of step loops required at nominal speed
+   step_loops_nominal = step_loops;
+   acc_step_rate = current_block->initial_rate;
+@@ -321,7 +326,11 @@
+       counter_x = -(current_block->step_event_count >> 1);
+       counter_y = counter_x;
+       counter_z = counter_x;
++      counter_r = counter_x;
+       counter_e = counter_x;
++
++      //SERIAL_ECHOPAIR("\ncounter x: ", (float)counter_x);
++
+       step_events_completed = 0; 
+       
+       #ifdef Z_LATE_ENABLE 
+@@ -485,6 +494,15 @@
+       }
+     }
+ 
++    if ((out_bits & (1<<R_AXIS)) != 0) {   // -direction
++      WRITE(R_DIR_PIN,INVERT_R_DIR);
++      count_direction[R_AXIS]=-1;
++    }
++    else { // +direction
++      WRITE(R_DIR_PIN,!INVERT_R_DIR);
++      count_direction[Z_AXIS]=1;
++    }
++
+     #ifndef ADVANCE
+       if ((out_bits & (1<<E_AXIS)) != 0) {  // -direction
+         REV_E_DIR();
+@@ -599,6 +617,15 @@
+         #endif
+       }
+ 
++      counter_r += current_block->steps_r;
++      if (counter_r > 0) {
++        WRITE(R_STEP_PIN, !INVERT_R_STEP_PIN);
++        counter_r -= current_block->step_event_count;
++        count_position[R_AXIS]+=count_direction[R_AXIS];
++        WRITE(R_STEP_PIN, INVERT_R_STEP_PIN);
++      }
++
++
+       #ifndef ADVANCE
+         counter_e += current_block->steps_e;
+         if (counter_e > 0) {
+@@ -749,9 +776,12 @@
+   #if Y_DIR_PIN > -1 
+     SET_OUTPUT(Y_DIR_PIN);
+   #endif
++  #if R_DIR_PIN > -1
++    SET_OUTPUT(R_DIR_PIN);
++  #endif
++
+   #if Z_DIR_PIN > -1 
+     SET_OUTPUT(Z_DIR_PIN);
+-
+     #if defined(Z_DUAL_STEPPER_DRIVERS) && (Z2_DIR_PIN > -1)
+       SET_OUTPUT(Z2_DIR_PIN);
+     #endif
+@@ -785,6 +815,7 @@
+       if(!Z_ENABLE_ON) WRITE(Z2_ENABLE_PIN,HIGH);
+     #endif
+   #endif
++
+   #if (E0_ENABLE_PIN > -1)
+     SET_OUTPUT(E0_ENABLE_PIN);
+     if(!E_ENABLE_ON) WRITE(E0_ENABLE_PIN,HIGH);
+@@ -863,6 +894,11 @@
+     #endif
+     disable_z();
+   #endif  
++  #if (R_STEP_PIN > -1)
++    SET_OUTPUT(R_STEP_PIN);
++    WRITE(R_STEP_PIN,INVERT_R_STEP_PIN);
++    disable_r();
++  #endif
+   #if (E0_STEP_PIN > -1) 
+     SET_OUTPUT(E0_STEP_PIN);
+     WRITE(E0_STEP_PIN,INVERT_E_STEP_PIN);
+@@ -930,13 +966,14 @@
+   }
+ }
+ 
+-void st_set_position(const long &x, const long &y, const long &z, const long &e)
++void st_set_position(const long &x, const long &y, const long &z, const long &e, const long &r)
+ {
+   CRITICAL_SECTION_START;
+   count_position[X_AXIS] = x;
+   count_position[Y_AXIS] = y;
+   count_position[Z_AXIS] = z;
+   count_position[E_AXIS] = e;
++  count_position[R_AXIS] = r;
+   CRITICAL_SECTION_END;
+ }
+ 
+@@ -962,6 +999,7 @@
+   disable_x(); 
+   disable_y(); 
+   disable_z(); 
++  disable_r();
+   disable_e0(); 
+   disable_e1(); 
+   disable_e2(); 
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/stepper.h solidoodle2-Marlin-master/Marlin/stepper.h
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/stepper.h	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/Marlin/stepper.h	2013-08-30 08:29:51.000000000 -0400
+@@ -48,7 +48,7 @@
+ void st_synchronize();
+ 
+ // Set current position in steps
+-void st_set_position(const long &x, const long &y, const long &z, const long &e);
++void st_set_position(const long &x, const long &y, const long &z, const long &e, const long &r);
+ void st_set_e_position(const long &e);
+ 
+ // Get current position in steps
+diff -urw '--exclude=.git' solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/ZWobble.h solidoodle2-Marlin-master/Marlin/ZWobble.h
+--- solidoodle2-Marlin-2cab8e67f0b337b7224120c4bda25aa6c62bd567/Marlin/ZWobble.h	2013-08-30 08:27:22.000000000 -0400
++++ solidoodle2-Marlin-master/Marlin/ZWobble.h	2013-08-30 08:29:51.000000000 -0400
+@@ -150,7 +150,7 @@
+ //===========================================================================
+ 
+ extern ZWobble zwobble;
+-extern long position[4]; // defined in planner.cpp
++extern long position[NUM_AXIS]; // defined in planner.cpp
+ 
+ #endif
+ 

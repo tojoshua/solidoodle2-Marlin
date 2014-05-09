@@ -1283,7 +1283,7 @@ void process_commands()
       SERIAL_PROTOCOL(float(st_get_position(Y_AXIS))/axis_steps_per_unit[Y_AXIS]);
       SERIAL_PROTOCOLPGM("Z:");
       SERIAL_PROTOCOL(float(st_get_position(Z_AXIS))/axis_steps_per_unit[Z_AXIS]);
-      SERIAL_PROTOCOLPGM("Z:");
+      SERIAL_PROTOCOLPGM("R:");
       SERIAL_PROTOCOL(float(st_get_position(R_AXIS))/axis_steps_per_unit[R_AXIS]);
       
       SERIAL_PROTOCOLLN("");

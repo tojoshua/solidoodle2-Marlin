@@ -672,9 +672,9 @@ void plan_buffer_line(const float &x, const float &y, const float &z, const floa
   block->nominal_speed = block->millimeters * inverse_second; // (mm/sec) Always > 0
   block->nominal_rate = ceil(block->step_event_count * inverse_second); // (step/sec) Always > 0
   
-  /// durty hack to accelerate R_AXIS I don't know how to accelerate it normal way.
-  if (abs(delta_mm[R_AXIS]) > 5 && abs(delta_mm[X_AXIS]) < 1 && abs(delta_mm[Y_AXIS]) < 1)
-      block->nominal_rate *= 10;
+/// dirty hack to accelerate R_AXIS I don't know how to accelerate it normal way.
+//  if (abs(delta_mm[R_AXIS]) > 5 && abs(delta_mm[X_AXIS]) < 1 && abs(delta_mm[Y_AXIS]) < 1)
+//      block->nominal_rate *= 10;
 
   // Calculate and limit speed in mm/sec for each axis
   float current_speed[NUM_AXIS];
